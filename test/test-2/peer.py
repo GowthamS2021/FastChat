@@ -31,8 +31,9 @@ def thread2():
     while msg : 
         if (msg == '-1'):
             break
-        c.send(msg.encode())
         msg = input()
+        c.send(msg.encode())
+        
 
 send = threading.Thread(target=thread1,args=())
 recieve = threading.Thread(target=thread2,args=())
