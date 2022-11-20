@@ -7,5 +7,7 @@ s1.connect((host,port))
 msg  = s1.recv(1024)
 while msg : 
     print(msg.decode())
+    msg = input()
+    s1.sendall(msg.encode())
     msg = s1.recv(1024)
 s1.close()

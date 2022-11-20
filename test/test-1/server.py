@@ -15,6 +15,9 @@ while msg :
     if (msg == '-1'):
         break
     connection.send(msg.encode())
+    st = connection.recv(1024)
+    print(st.decode())
     msg = input()
+    
 
 
