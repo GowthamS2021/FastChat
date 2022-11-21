@@ -7,6 +7,12 @@ import random
 host = '127.0.0.1'
 port1 = int(sys.argv[1])
 port2 = int(sys.argv[2])
+clientid1 = int(sys.argv[3])
+clientid2 = int(sys.argv[4])
+
+
+
+
 s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 def thread1 ():
