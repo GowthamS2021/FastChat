@@ -1,0 +1,5 @@
+1. database - authenication and storing
+2. printing all the messages and storing all the msgs
+3. end to end encryption
+4. groups
+5. GUI
