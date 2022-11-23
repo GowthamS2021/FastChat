@@ -20,4 +20,13 @@ https://stackoverflow.com/questions/14207708/ioerror-errno-32-broken-pipe-when-p
 https://stackoverflow.com/questions/10810249/python-socket-multiple-clients
 https://docs.python.org/3/library/time.html
 https://docs.python.org/3/library/concurrent.futures.html
+https://stackoverflow.com/questions/47113509/git-branch-is-not-showing-all-the-branches
+https://docs.python.org/3/library/datetime.html
+https://www.programiz.com/python-programming/datetime/strftime
+https://www.geeksforgeeks.org/get-current-date-and-time-using-python/#:~:text=now()%20function%20of%20DateTime,current%20local%20date%20and%20time.
+https://www.psycopg.org/docs/usage.html#server-side-cursorshttps://www.geeksforgeeks.org/python-postgresql-create-database/
+https://stackoverflow.com/questions/5420789/how-to-install-psycopg2-with-pip-on-python
+https://www.tutorialspoint.com/python_data_access/python_postgresql_create_database.htm
+https://www.geeksforgeeks.org/python-postgresql-select-data/
+https://www.section.io/engineering-education/rsa-encryption-and-decryption-in-python/
 

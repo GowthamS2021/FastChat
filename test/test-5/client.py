@@ -2,8 +2,13 @@ import socket
 import json
 from getpass import getpass
 import psycopg2
+import string
+import random
+import hashlib
 import threading
-import re
+import os
+import base64
+import rsa
 from datetime import datetime
 
 
@@ -28,8 +33,8 @@ cursor = conn.cursor()
 
 class client:
     def __init__(self, host):
-        credentials = self.auth()
-        self.credentials = credentials
+        self.credentials = self.auth()
+        self.print_all_msgs(self.credentials[0])
         self.clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientSuperSocket = socket.socket(
             socket.AF_INET, socket.SOCK_STREAM)
@@ -39,7 +44,7 @@ class client:
         print(address)  # testing
         self.clientsocket.connect((host, address))
         self.clientsocket.sendall(json.dumps(
-            {'name': credentials[0]}).encode())
+            {'name': self.credentials[0]}).encode())
         self.sendThread = threading.Thread(target=self.send, args=())
         self.recvThread = threading.Thread(target=self.recv, args=())
         self.sendThread.start()
@@ -53,14 +58,13 @@ class client:
                 username = input("Username:")
                 password = getpass("Password:")
                 cursor.execute(
-                    '''SELECT password FROM auth WHERE username = %s''', (username,))
+                    '''SELECT password,salt FROM auth WHERE username = %s''', (username,))
                 output = cursor.fetchall()
                 print(output)  # testing
                 if len(output) == 0:
                     print('Such Credentials does not exist')
-                elif output[0][0] == password:
-                    found = True
-                    self.print_all_msgs(username)
+                elif self.isSame(password,output[0][0],output[0][1]):
+                    found = True                    
                     return (username, password)
             elif cmd == 0:
                 username = input("Username:").strip(' ')
@@ -68,12 +72,14 @@ class client:
                 co_password = getpass("Confirm Password:")
                 if co_password == password:
                     cursor.execute(
-                        '''SELECT password FROM auth WHERE username = %s ;''', (username,))
+                        '''SELECT password,salt FROM auth WHERE username = %s ;''', (username,))
                     output = cursor.fetchall()
                     # print(output)
                     if len(output) == 0:
+                        (password,salt) = self.encrypt_password(password)
+                        self.generateKeys(username)
                         cursor.execute(
-                            '''INSERT INTO auth(username,password) VALUES(%s,%s) ;''', (username, password))
+                            '''INSERT INTO auth(username,password,salt,publicKeyn,publicKeye) VALUES(%s,%s,%s,%s,%s) ;''', (username, password,salt,str(self.publicKey.n),self.publicKey.e))
                         conn.commit()
                         print('Registered!!')
                         found = True
@@ -94,12 +100,55 @@ class client:
         for x in output:
             print("sender:" + x[0])
             print("time:" + x[3].strftime("%Y-%m-%d %H:%M:%S"))
-            print("msg:" + x[2])
+            print("msg:" + self.decrypt(x[2]))
+
+    def encrypt_password(self,password):
+        random_string = ''.join(random.choices(string.ascii_uppercase +string.digits, k=5))
+        return (hashlib.sha256((password+random_string).encode()).hexdigest(),random_string)
+    
+    def isSame(self,password,stored,salt):
+        return (hashlib.sha256((password+salt).encode()).hexdigest() == stored)
+    
+
+    def generateKeys(self,username):
+        (publicKey, privateKey) = rsa.newkeys(1024)
+        # with open('keys/publicKey.pem', 'wb') as p:
+        #     p.write(publicKey.save_pkcs1('PEM'))
+        self.publicKey = publicKey
+        with open('keys/privateKey_'+str(username)+'.pem', 'w+') as p:
+            p.write(privateKey.save_pkcs1('PEM').decode())        
+        return publicKey
+    
+    # def loadKeys(self):
+    #     with open('keys/publicKey.pem','rb') as p:
+    #         publicKey = rsa.PublicKey.load_pkcs1(p.read())
+    #     with open('keys/privateKey.pem','rb') as p:
+    #         privateKey = rsa.PrivateKey.load_pkcs1(p.read())
+    #     return privateKey, publicKey
+    
+    def encrypt_message(self,message, key):
+        return rsa.encrypt(message.encode('ascii'), key).decode('ISO-8859-1')
+
+    def decrypt(self,ciphertext):
+        with open('keys/privateKey_'+self.credentials[0]+'.pem','rb') as p:
+            key = rsa.PrivateKey.load_pkcs1(p.read())
+        try:
+            return rsa.decrypt(ciphertext.encode('ISO-8859-1'), key).decode()
+        except:
+            return False
+
+    def sign(message, key):
+        return rsa.sign(message.encode('ascii'), key, 'SHA-1')
+    
+    def verify(message, signature, key):
+        try:
+            return rsa.verify(message.encode('ascii'), signature, key,) == 'SHA-1'
+        except:
+            return False
 
     def send(self):
         i = 0
         while i >= 0:
-
             name = input('To:').strip(' ')
             cursor.execute(
                 '''SELECT * FROM auth WHERE username = %s''', (name,))
@@ -119,11 +168,13 @@ class client:
                         msg = input('Msg:')
                         if msg == '':
                             print('Can\'t send a empty message')
-                    msgdict = {'sender': self.credentials[0], 'reciever': name, 'msg': msg, 'time': datetime.now(
-                    ).strftime("%Y-%m-%d %H:%M:%S")}
+                    cursor.execute('''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s''',(name,))
+                    public = cursor.fetchall()[0]
+                    encrypted_msg = self.encrypt_message(msg,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    msgdict = {'sender': self.credentials[0], 'reciever': name, 'msg': encrypted_msg, 'time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
                     print(msgdict)  # testing
                     cursor.execute(
-                        '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, msg,))
+                        '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, encrypted_msg))
                     conn.commit()
                     self.clientsocket.send(json.dumps(msgdict).encode())
             else:
@@ -156,7 +207,7 @@ class client:
                 if msgdict['msg'] != "":
                     print("sender:" + msgdict['sender'])
                     print("time:" + msgdict['time'])
-                    print("msg:" + msgdict['msg'])
+                    print("msg:" + self.decrypt(msgdict['msg']))
             else:
                 while msgdict and is_json(msgdict) is not True:
                     with open(basename, 'ab') as myfile:

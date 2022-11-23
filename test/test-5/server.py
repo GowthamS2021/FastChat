@@ -96,12 +96,13 @@ class server():
                     output = cursor.fetchall()
                     print(output)# testing
                     print(self.server_id)# testing
-                    if len(output) == 0 or output[0]!=self.server_id:
+                    if len(output) == 0 or output[0][0]!=self.server_id:
                         self.supersocket.sendall(json.dumps(msgDict).encode())
-                    elif output[0] == self.server_id :
+                    elif output[0][0] == self.server_id :
                         try:
-                            self.clients[msgdict['reciever']][0].sendall(json.dumps(msgDict).encode())
+                            self.clients[msgDict['reciever']][0].sendall(json.dumps(msgDict).encode())
                         except :
+                            print(msgDict)
                             continue
             else :
                 # if icount != count:
@@ -109,7 +110,7 @@ class server():
                 #     msg1 = {'id':-1,'msg':""}
                 #     # print(msgdict)
                 #     self.clientsocket.send(json.dumps(msg1).encode())
-                #     icount = count 
+                #     icount = count z
                 c = self.clients[idnow][0]
                 c.send(msgdict)
 

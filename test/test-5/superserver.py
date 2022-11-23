@@ -26,7 +26,10 @@ class superServer:
         self.threads = []
         cursor.execute('''CREATE TABLE IF NOT EXISTS auth(
             username TEXT NOT NULL PRIMARY KEY,
-            password TEXT NOT NULL 
+            password TEXT NOT NULL ,
+            salt TEXT NOT NULL,
+            publicKeyn TEXT NOT NULL,
+            publicKeye integer NOT NULL
         )''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS server(
             serverId integer NOT NULL ,
