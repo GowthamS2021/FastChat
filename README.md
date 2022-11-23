@@ -35,11 +35,14 @@ database and RSA for **end-to-end** encryption we have used **round-robin load-b
 * It connects with Load balancing server and clients. It allows the clients to communicate. 
 * Both server and clients have access to database and send messages to database first and then to their respective clients/servers .
 
+<<<<<<< HEAD
 # Team member's contribution
 
 * Kanishk Garg : Test-1 and Test-2, basic implementation, groups
 * Gowtham : Test-3,4 and 5, Implementation of multiserver-multiclient system by using multithreading, E2E encryption, Authenication, Storing messages in Database.
 * Naman : Test-5, Sending,Storing images, Salting of password, Encryption of images(Working).
+=======
+>>>>>>> remotes/origin/naman
 
 # Links used
 
