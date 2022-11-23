@@ -3,10 +3,7 @@ import json
 import psycopg2
 import sys
 import threading
-
-
-
-idnow = -1
+idnow = ""
 
 conn = psycopg2.connect(
     database='fastchatdb',
@@ -42,11 +39,11 @@ class server():
 
     def accept(self):
         connection,address = self.serversocket.accept()
-        print('heyy')# testing
+        # print('heyy')# testing
         infodict = connection.recv(1024) # send the username 
         client_id = json.loads(infodict.decode())['name']
         self.clients[client_id] = (connection,address)
-        print(self.clients)# testing
+        # print(self.clients)# testing
         recvThread = threading.Thread(target=self.handle_recv,args=(connection,))
         self.threads[client_id] = recvThread
         cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''',(client_id,))
@@ -56,51 +53,62 @@ class server():
         else :
             cursor.execute('''UPDATE server SET serverId = %s  WHERE clientId = %s ''',(self.server_id,client_id))
         conn.commit()
-        self.supersocket.sendall('True'.encode()) # have to change this
+        self.supersocket.sendall(json.dumps({'isClientAdded':True}).encode()) # have to change this
         recvThread.start()    
         
 
     def recv_supersocket(self):
+        
         while True:
-            msgdict = json.loads(self.supersocket.recv(1024).decode())
-            print(msgdict)# testing
-            # cursor.execute('''SELECT serverId FROM server WHERE clientId = %s''',(msgdict['reciever'],))
-            # output = cursor.fetchall()
-            # print(output)
-            #if output[0] != self.server_id:
-            #    self.supersocket.sendall(json.dumps(msgdict).encode())
-            #else :
-            try :
-                self.clients[msgdict['reciever']][0].sendall(json.dumps(msgdict).encode())
-            except KeyError:
-                continue
+            msgdict = self.supersocket.recv(1024)
+            if is_json(msgdict):
+                
+                msgDict = json.loads(msgdict,strict = False)
+                # print(msgDict)# testing
+           
+                try :
+                    self.clients[msgDict['reciever']][0].sendall(json.dumps(msgDict).encode())
+                except KeyError:
+                    continue
+            else:
+                try :
+                    self.clients[msgDict['reciever']][0].send(msgdict)
+                except KeyError:
+                    continue
+                
 
     def handle_recv(self,connection):
-        # count = 0 
-        # icount = count       
+        global idnow      
         while True:
             msgdict = connection.recv(1024)
             if is_json(msgdict):        
                 msgDict = json.loads(msgdict,strict=False)
                 if msgDict['msg'] == "" :
                     idnow = msgDict['reciever']
-                    c = self.clients[msgDict['reciever']][0]
-                    c.send(msgdict)
-                    # count += 1 
-                    # if count == 1:
-                    #     icount = count
-                else:
-                    # msgdict = json.loads(connection.recv(1024).decode())
-                    print(msgDict)# testing
                     cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''',(msgDict['reciever'],))
                     output = cursor.fetchall()
-                    print(output)# testing
-                    print(self.server_id)# testing
+                    # print(output)# testing
+                    # print(self.server_id)# testing
                     if len(output) == 0 or output[0]!=self.server_id:
                         self.supersocket.sendall(json.dumps(msgDict).encode())
                     elif output[0] == self.server_id :
                         try:
-                            self.clients[msgdict['reciever']][0].sendall(json.dumps(msgDict).encode())
+                            self.clients[msgDict['reciever']][0].sendall(json.dumps(msgDict).encode())
+                        except :
+                            continue
+                    
+                else:
+                    # msgdict = json.loads(connection.recv(1024).decode())
+                    # print(msgDict)# testing
+                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''',(msgDict['reciever'],))
+                    output = cursor.fetchall()
+                    # print(output)# testing
+                    # print(self.server_id)# testing
+                    if len(output) == 0 or output[0]!=self.server_id:
+                        self.supersocket.sendall(json.dumps(msgDict).encode())
+                    elif output[0] == self.server_id :
+                        try:
+                            self.clients[msgDict['reciever']][0].sendall(json.dumps(msgDict).encode())
                         except :
                             continue
             else :
@@ -110,8 +118,21 @@ class server():
                 #     # print(msgdict)
                 #     self.clientsocket.send(json.dumps(msg1).encode())
                 #     icount = count 
-                c = self.clients[idnow][0]
-                c.send(msgdict)
+                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''',(idnow,))
+                    try:
+                            output = cursor.fetchall()
+                                # print(output)# testing
+                                # print(self.server_id)# testing
+                            if len(output) == 0 or output[0]!=self.server_id:
+                                self.supersocket.sendall(msgdict)
+                            elif output[0] == self.server_id :
+                                
+                                    self.clients[idnow][0].sendall(msgdict)
+                                
+                    except :
+                                    continue
+                # c = self.clients[idnow][0]
+                # c.send(msgdict)
 
 if __name__ == '__main__':
     Server = server('127.0.0.1',int(sys.argv[1]))
