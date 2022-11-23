@@ -217,7 +217,8 @@ try:
 
     
 
-#     def auth(self):
+
+                            #     def auth(self):
 #         found = False
 #         while not found:
 #             cmd = int(input("press 1 for Login else 0 for SignUp:"))
@@ -252,8 +253,8 @@ try:
             #             print("msg:" + x[2])
             
                             
-                                        
-    
+                            
+                            # msgdict = self.clientsocket.recv(1024)
                             
                         
                         
@@ -325,7 +326,7 @@ try:
                             cursor.execute(
                             '''INSERT INTO image( sender, reciever , img , time, displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], name ,imagedata ,imagename ))
                             conn.commit()
-                    # i += 1
+                    
 
             def recv(self):
 
@@ -435,21 +436,9 @@ try:
 # if __name__ == '__main__':
 #     Client  = client('127.0.0.1')
 # =======
-                        # siti = ""
-                        # sit = ""
-                        # basename = ""
+                        
                         while msgdict and is_json(msgdict) is not True:
-                            # cursor.execute('''SELECT * FROM image WHERE img = %s''', (msgdict,))
-                            # out = cursor.fetchall()
-                            # if len(out)!= 0 :
-                                    
-                            #         # print(len(out[0]))
-                            #         sit = out[0][5]
-                                    
-                            #         if sit != siti:
-                            #             spst = sit.split(".")
-                            #             sit = siti
-                            #             basename = "recv"+str(out[0][0]) +" " + str(out[0][1]) + str(out[0][3]) + "."+ spst[-1]
+                           
                                         
                                     
                             with open(basename, 'ab') as myfile:
