@@ -62,7 +62,10 @@ class server():
         # except:
         #     print('\''+client_id+'\'')
         #     output = []
-        output = cursor.fetchall()
+        try :
+            output = cursor.fetchall() 
+        except:
+            output = []
         print(output)
         if len(output) == 0:
             print('\''+client_id+'\'')
@@ -77,21 +80,29 @@ class server():
         recvThread.start()
 
     def recv_supersocket(self):
-        while True:
-            msgdict = self.supersocket.recv(4096)
+        while True:            
+            msgdict = self.supersocket.recv(1024)
             if is_json(msgdict):
+                
+
                 msgDict = json.loads(msgdict, strict=False)
-                print(msgDict)# testing
-                try:
-                    self.clients[msgDict['reciever']][0].sendall(
-                        json.dumps(msgDict).encode())
-                except KeyError:
-                    continue
+                # print(msgDict)# testing
+                if msgDict['msg'] == "":
+                        idnow = msgDict['reciever']
+                else:
+                
+                        try:
+                            self.clients[msgDict['reciever']][0].sendall(
+                                json.dumps(msgDict).encode())
+                        except KeyError:
+                            continue
+# >>>>>>> 6cc16c7549a8db843ebcf86359fdf6716bdbf3c5
             else:
-                try:
-                    self.clients[msgDict['reciever']][0].send(msgdict)
-                except BrokenPipeError or KeyError:
-                    continue
+                if self.clients.get(idnow) != None:                    
+                    try:
+                        self.clients[idnow][0].send(msgdict)
+                    except BrokenPipeError or KeyError:
+                        continue
 
     def handle_recv(self, connection):
         global idnow
@@ -101,8 +112,7 @@ class server():
                 msgDict = json.loads(msgdict, strict=False)
                 if msgDict.get('msg') == "":
                     idnow = msgDict['reciever']
-                    cursor.execute(
-                        '''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
+                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ''', (msgDict['reciever'],))
                     output = cursor.fetchall()
                     # print(output)# testing
                     # print(self.server_id)# testing

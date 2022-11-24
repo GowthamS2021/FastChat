@@ -47,12 +47,19 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS message(
 )
 ''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS image(
-    sender TEXT NOT NULL,
-    reciever TEXT NOT NULL,
-    img BYTEA,
-    time TIMESTAMP,
-    displayed BOOL,
-    imagenames TEXT NOT NULL
+            sender TEXT NOT NULL,
+            reciever TEXT NOT NULL,
+            img BYTEA NOT NULL,
+            time TIMESTAMP,
+            displayed BOOL,
+            imagenames TEXT NOT NULL
+        )
+''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS Groups(
+    group_name TEXT NOT NULL,
+    participant TEXT NOT NULL,
+    is_admin BOOL,
+    id integer NOT NULL
 )
 ''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS privateKeyTable(username TEXT NOT NULL,
@@ -66,6 +73,7 @@ cursor.execute('''GRANT SELECT, INSERT ON auth TO client''')
 cursor.execute('''GRANT SELECT, INSERT ON message TO client''')
 cursor.execute('''GRANT SELECT, INSERT, UPDATE ON image TO client''')
 cursor.execute('''GRANT INSERT ON privateKeyTable TO client''')
+cursor.execute('''GRANT SELECT, INSERT, UPDATE, DELETE ON Groups TO client''')
 cursor.execute('''GRANT SELECT, INSERT, UPDATE ON server TO server''')
 conn.commit()
 

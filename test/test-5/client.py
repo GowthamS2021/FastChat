@@ -13,12 +13,15 @@ import rsa
 from datetime import datetime
 
 # try:
+
+
 def is_json(myjson):
     try:
         json.loads(myjson)
     except ValueError as e:
         return False
     return True
+
 
 conn = psycopg2.connect(
     database='fastchatdb',
@@ -30,11 +33,13 @@ conn = psycopg2.connect(
 
 cursor = conn.cursor()
 
+
 class client:
     def __init__(self, host):
         self.credentials = self.auth()
         print(self.credentials[0])
-        self.privateKeysFound = os.path.isfile('keys/privateKey_'+str(self.credentials[0])+'.pem')
+        self.privateKeysFound = os.path.isfile(
+            'keys/privateKey_'+str(self.credentials[0])+'.pem')
         print(self.privateKeysFound)
         self.var = True
         self.print_all_msgs(self.credentials[0])
@@ -49,8 +54,8 @@ class client:
         print(address)  # testing
         self.clientsocket.connect((host, address))
         self.clientsocket.sendall(json.dumps(
-            {'name': self.credentials[0],'PrivateKeys':self.privateKeysFound}).encode())
-        if not self.privateKeysFound :
+            {'name': self.credentials[0], 'PrivateKeys': self.privateKeysFound}).encode())
+        if not self.privateKeysFound:
             output = json.loads(self.clientsocket.recv(4096).decode())
             self.generate_privatekeyfile(output)
         try:
@@ -60,15 +65,14 @@ class client:
             self.recvThread.start()
         except KeyboardInterrupt:
             print('Yo handled man!!')
-        
 
     def download_unsavedimages(self, username):
         cursor.execute(
-            '''SELECT * FROM image WHERE reciever = %s''', (username,))
+            '''SELECT * FROM image WHERE reciever = %s ORDER BY TIME ASC''', (username,))
         output = cursor.fetchall()
         if len(output) != 0:
             today = datetime.now()
-            basename = "recvimg"+str(today)+".jpg"
+            basename = "recvimg"+str(today)+"_"+str(self.credentials[0])+".jpg"
             stry = output[0][5]
             for x in output:
                 if not x[4]:
@@ -103,8 +107,8 @@ class client:
                     print('Such Credentials does not exist')
                 elif self.isSame(password, output[0][0], output[0][1]):
                     found = True
-                    
-                        # self.privateKeysFound = False
+
+                    # self.privateKeysFound = False
                     return (username, password)
             elif cmd == 0:
                 username = input("Username:").strip(' ')
@@ -139,17 +143,18 @@ class client:
         output = cursor.fetchall()
         for x in output:
             if x[2] != '':
-                decrypted = self.decrypt(x[2])
+                decrypted = self.decrypt_message(x[2])
                 if decrypted != '':
                     print("sender:" + x[0])
                     print("time:" + x[3].strftime("%Y-%m-%d %H:%M:%S"))
                     print("msg:" + decrypted)
 
-    def generate_privatekeyfile(self,dict):
-        privateKey = rsa.key.PrivateKey(int(dict['privateKeyn']),int(dict['privateKeye']),int(dict['privateKeyd']),int(dict['privateKeyp']),int(dict['privateKeyq']))
+    def generate_privatekeyfile(self, dict):
+        privateKey = rsa.key.PrivateKey(int(dict['privateKeyn']), int(dict['privateKeye']), int(
+            dict['privateKeyd']), int(dict['privateKeyp']), int(dict['privateKeyq']))
         with open('keys/privateKey_'+str(self.credentials[0])+'.pem', 'w+') as p:
             p.write(privateKey.save_pkcs1('PEM').decode())
-    
+
     def encrypt_password(self, password):
         random_string = ''.join(random.choices(
             string.ascii_uppercase + string.digits, k=5))
@@ -164,14 +169,17 @@ class client:
         #     p.write(publicKey.save_pkcs1('PEM'))
         self.publicKey = publicKey
         cursor.execute('''INSERT INTO privateKeyTable(username,privateKeyn,privateKeye,privateKeyd,privateKeyp,privateKeyq) 
-        values(%s,%s,%s,%s,%s,%s)''',(username,str(privateKey.n),str(privateKey.e),str(privateKey.d),str(privateKey.p),str(privateKey.q)))
+        values(%s,%s,%s,%s,%s,%s)''', (username, str(privateKey.n), str(privateKey.e), str(privateKey.d), str(privateKey.p), str(privateKey.q)))
         with open('keys/privateKey_'+str(username)+'.pem', 'w+') as p:
             p.write(privateKey.save_pkcs1('PEM').decode())
 
     def encrypt_message(self, message, key):
         return base64.b64encode(rsa.encrypt(message.encode(), key)).decode()
+    
+    def encrypt_images(self,imagedata,key):
+        return base64.b64encode(rsa.encrypt(imagedata,key)).decode()
 
-    def decrypt(self, ciphertext):
+    def decrypt_message(self, ciphertext):
         with open('keys/privateKey_'+self.credentials[0]+'.pem', 'rb') as p:
             key = rsa.PrivateKey.load_pkcs1(p.read())
         try:
@@ -179,109 +187,266 @@ class client:
         except:
             return False
 
-    def sign(message, key):
-        return rsa.sign(message.encode('ascii'), key, 'SHA-1')
-
-    def verify(message, signature, key):
-        try:
-            return rsa.verify(message.encode('ascii'), signature, key,) == 'SHA-1'
-        except:
-            return False
-
     def send(self):
 
         # try:
         while self.var:
-            name = input('Type \'exit\' to exit \n To:').strip(' ')
-            if (name == 'exit'):
-                # print('anen')
+            # name = input('Type \'exit\' to exit \n To:').strip(' ')
+            # if (name == 'exit'):
+            #     # print('anen')
+            #     self.var = False
+            #     self.update()
+            #     return
+            print("Press 0 for DM and anything else for group operations or Type 'exit' to exit FastChat")
+            checks = input()
+            if checks == '0':
+                name = input('To:').strip(' ')
+                # if (name == 'exit'):
+                #     # print('anen')
+                #     self.var = False
+                #     self.update()
+                #     return
+                cursor.execute('''SELECT * FROM auth WHERE username = %s''', (name,))
+
+                output = cursor.fetchall()
+                if len(output) == 0:
+                    print('such user doesn\'t exist')
+                    continue
+                print(
+                    "Would you like to send image or text message:\n Press 0 for text message \n, Press anything else for image ")
+                check = int(input())
+                if check == 0:
+                    msg = ''
+                    while msg == '':
+                        msg = input('Msg:')
+                        if msg == '':
+                            print('Can\'t send a empty message')
+                    cursor.execute('''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s''',(name,))
+                    public = cursor.fetchall()[0]
+                    encrypted_msg = self.encrypt_message(msg,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    msgdict = {'sender': self.credentials[0], 'reciever': name, 'msg': encrypted_msg, 'time': datetime.now(
+                    ).strftime("%Y-%m-%d %H:%M:%S")}
+                    print(msgdict)  # testing
+                    cursor.execute(
+                        '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, encrypted_msg))
+                    conn.commit()
+                    self.clientsocket.send(json.dumps(msgdict).encode())
+                else:
+                    msg = ""
+
+                    msgdict = {
+                        'sender': self.credentials[0], 'reciever': name, 'msg': msg}
+                    cursor.execute(
+                        '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, msg))
+                    conn.commit()
+                    self.clientsocket.send(json.dumps(msgdict).encode())
+
+                    imagename = input('imagename:')
+                    myfile = open(imagename, 'rb')
+                    imagedata = myfile.read(2048)
+                    cursor.execute(
+                        '''INSERT INTO image( sender, reciever , img , time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], name, imagedata, imagename))
+
+                    conn.commit()
+                    while imagedata:
+                        self.clientsocket.sendall(imagedata)
+                        imagedata = myfile.read(2048)
+                        if not imagedata:
+                            break
+                        cursor.execute(
+                            '''INSERT INTO image( sender, reciever , img , time, displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], name, imagedata, imagename))
+                        conn.commit()
+            elif checks == 'exit':
                 self.var = False
                 self.update()
                 return
-
-            cursor.execute(
-                '''SELECT * FROM auth WHERE username = %s''', (name,))
-            output = cursor.fetchall()
-            if len(output) == 0:
-                # <<<<<<< HEAD
-                # =======
-                print('such user doesn\'t exist')
-                continue
-            print(
-                "Would you like to send image or text message:\n Press 0 for text message \n, Press anything else for image ")
-            check = int(input())
-            if check == 0:
-
-                # msg = ''
-                # while msg == '':
-                #     msg = input('Msg:')
-                #     if msg == '':
-                #         print('Can\'t send a empty message')
-                # msgdict = {'sender': self.credentials[0], 'reciever': name, 'msg': msg, 'time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                # cursor.execute(
-                #     '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, msg,))
-                # conn.commit()
-                # self.clientsocket.send(json.dumps(msgdict).encode())
-                msg = ''
-                while msg == '':
-                    msg = input('Msg:')
-                    if msg == '':
-                        print('Can\'t send a empty message')
-                cursor.execute(
-                    '''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s''', (name,))
-                public = cursor.fetchall()[0]
-                encrypted_msg = self.encrypt_message(
-                    msg, (rsa.key.PublicKey(int(public[0]), public[1])))
-                msgdict = {'sender': self.credentials[0], 'reciever': name, 'msg': encrypted_msg, 'time': datetime.now(
-                ).strftime("%Y-%m-%d %H:%M:%S")}
-                print(msgdict)  # testing
-                cursor.execute(
-                    '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, encrypted_msg))
-                conn.commit()
-                self.clientsocket.send(json.dumps(msgdict).encode())
             else:
-                msg = ""
-                msgdict = {
-                    'sender': self.credentials[0], 'reciever': name, 'msg': msg}
-                cursor.execute(
-                    '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, msg))
-                conn.commit()
-                self.clientsocket.send(json.dumps(msgdict).encode())
 
-                imagename = input('imagename:')
-                myfile = open(imagename, 'rb')
-                imagedata = myfile.read(2048)
-                cursor.execute(
-                    '''INSERT INTO image( sender, reciever , img , time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], name, imagedata, imagename))
-# >>>>>>> remotes/origin/naman
-                conn.commit()
-                while imagedata:
-                    self.clientsocket.send(imagedata)
-                    imagedata = myfile.read(2048)
+                print("press 0 for making new group ,1 for adding and removing participants from an existing group if you are admin, 2 for group chatting , any other thing for exiting")
+                checkgroup = int((input()))
+                if checkgroup == 0:
+
+                    print("Enter the groupname and non- zero group_id")
+                    try:
+                        groupname = ""
+                        id = -1
+                        output = [1]
+                        while len(output) != 0:
+                            groupname = input()
+                            id = int(input())
+                            cursor.execute(
+                                '''SELECT * FROM Groups WHERE group_name = %s AND id = %s ;''', (groupname, id))
+                            output = cursor.fetchall()
+                        cursor.execute(
+                            '''INSERT INTO Groups( group_name, participant ,is_admin ,id ) VALUES(%s,%s,TRUE,%s)''', (groupname, self.credentials[0], id))
+                        conn.commit()
+                    except:
+                        output = []
+                        cursor.execute(
+                            '''INSERT INTO Groups( group_name, participant ,is_admin ,id ) VALUES(%s,%s,TRUE,%s)''', (groupname, self.credentials[0], id))
+                        conn.commit()
+
+                elif checkgroup == 1:
+                    output = []
+                    print("Press 0 to delete participant and 1 to insert participant")
+                    take_input = int(input())
+                    if take_input == 0:
+                        print("Enter the groupname and non- zero group_id")
+
+                        groupname = input()
+                        id = int(input())
+                        name = input('Remove:').strip(' ')
+                        cursor.execute(
+                            '''SELECT * FROM auth WHERE username = %s''', (name,))
+
+                        outp = cursor.fetchall()
+                        if len(outp) == 0:
+
+                            print('such user doesn\'t exist')
+                        else:
+                            cursor.execute(
+                                '''SELECT * FROM Groups WHERE group_name = %s AND id = %s AND participant = %s ;''', (groupname, id, self.credentials[0]))
+                            output = cursor.fetchall()
+                            if len(output) == 0:
+                                print("The participant is not in the group")
+
+                            else:
+                                print(output)
+                                if output[0][2]:
+                                    cursor.execute(
+                                        '''SELECT * FROM Groups WHERE group_name = %s AND id = %s AND participant = %s ;''', (groupname, id, name))
+                                    outp = cursor.fetchone()
+                                    if len(outp) != 0:
+                                        cursor.execute(
+                                            '''DELETE FROM Groups WHERE group_name = %s AND id = %s AND participant = %s ; ''', (
+                                                groupname, id, name)
+                                        )
+                                        conn.commit()
+                                    else:
+                                        print(
+                                            "The participant to be removed is not in the group")
+
+                                else:
+                                    print("Participant is not the admin")
+
+                    else:
+                        print("Enter the groupname and non- zero group_id")
+
+                        groupname = input()
+                        id = int(input())
+                        name = input('Add:').strip(' ')
+                        cursor.execute(
+                            '''SELECT * FROM auth WHERE username = %s''', (name,))
+
+                        outp = cursor.fetchall()
+                        if len(outp) == 0:
+
+                            print('such user doesn\'t exist')
+                        else:
+                            cursor.execute(
+                                '''SELECT * FROM Groups WHERE group_name = %s AND id = %s AND participant = %s ;''', (groupname, id, self.credentials[0]))
+                            output = cursor.fetchall()
+                            if len(output) == 0:
+                                print("The participant is not in the group")
+
+                            else:
+                                print(output[0][2])
+                                if output[0][2]:
+                                    cursor.execute(
+                                        '''SELECT * FROM Groups WHERE group_name = %s AND id = %s AND participant = %s ;''', (groupname, id, name))
+                                    outp = cursor.fetchall()
+                                    if len(outp) != 0:
+                                        print(
+                                            "The person already exists in the group")
+                                    else:
+                                        cursor.execute(
+                                            '''INSERT INTO Groups( group_name, participant ,is_admin ,id ) VALUES(%s,%s,FALSE,%s)''', (groupname, name, id))
+                                        conn.commit()
+                                else:
+                                    print("Participant is not the admin")
+                elif checkgroup == 2:
+                    print("Enter the groupname and non- zero group_id")
+                    groupname = input()
+                    id = int(input())
                     cursor.execute(
-                        '''INSERT INTO image( sender, reciever , img , time, displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], name, imagedata, imagename))
-                    conn.commit()
-        # except Exception or KeyboardInterrupt or socket.timeout: #KeyboardInterrupt:
-        #     # self.__del__()
-        #     # exit(0)
-        #     print('KI')
-        #     self.clientsocket.close()
-            # i += 1
+                        '''SELECT * FROM Groups WHERE group_name = %s AND id = %s AND participant = %s ;''', (groupname, id, self.credentials[0]))
+                    output = cursor.fetchone()
+                    if len(output) == 0:
+                        print("The participant is not in the group")
+                    else:
+                        print(
+                            "Would you like to send image or text message:\n Press 0 for text message \n, Press anything else for image ")
+                        check = int(input())
+                        if check == 0:
+                            cursor.execute(
+                                '''SELECT participant FROM Groups WHERE group_name = %s AND id = %s  ;''', (groupname, id,))
+                            output = cursor.fetchall()
+                            msg = ''
+                            while msg == '':
+                                msg = input('Msg:')
+                                if msg == '':
+                                    print('Can\'t send a empty message')
+                            for i in output:
+                                cursor.execute('''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s''',(i[0],))
+                                public = cursor.fetchall()[0]
+                                encrypted_msg = self.encrypt_message(msg,(rsa.key.PublicKey(int(public[0]),public[1])))
+                                msgdict = {'sender': self.credentials[0], 'reciever': i[0], 'msg': encrypted_msg, 'time': datetime.now(
+                                ).strftime("%Y-%m-%d %H:%M:%S")}
+                                print(msgdict)  # testing
+                                print(i[0])
+
+                                cursor.execute(
+                                    '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], i[0], encrypted_msg))
+                                conn.commit()
+                                self.clientsocket.send(
+                                    json.dumps(msgdict).encode())
+                        else:
+                            cursor.execute(
+                                '''SELECT participant FROM Groups WHERE group_name = %s AND id = %s  ;''', (groupname, id,))
+                            output = cursor.fetchall()
+                            imagename = input('imagename:')
+                            print(output)
+                            for i in output:
+                                msg = ""
+                                msgdict = {
+                                    'sender': self.credentials[0], 'reciever': i[0], 'msg': msg}
+                                cursor.execute(
+                                    '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], i[0], msg))
+                                conn.commit()
+                                self.clientsocket.sendall(
+                                    json.dumps(msgdict).encode())
+
+                                myfile = open(imagename, 'rb')
+                                imagedata = myfile.read(2048)
+                                cursor.execute(
+                                    '''INSERT INTO image( sender, reciever , img , time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], i[0], imagedata, imagename))
+
+                                conn.commit()
+                                while imagedata:
+                                    self.clientsocket.sendall(imagedata)
+                                    imagedata = myfile.read(2048)
+                                    if not imagedata:
+                                        break
+                                    cursor.execute(
+                                        '''INSERT INTO image( sender, reciever , img , time, displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], i[0], imagedata, imagename))
+                                    conn.commit()
+
 
     def recv(self):
+
         while self.var:
             try:
                 msgdict = self.clientsocket.recv(1024)
             except Exception or KeyboardInterrupt or socket.timeout:  # KeyboardInterrupt:
                 return
             today = datetime.now()
-            basename = "recvimg"+str(today)+".jpg"
+            basename = "recvimg"+str(today)+"_"+str(self.credentials[0])+".jpg"
             if is_json(msgdict):
                 msgdict = json.loads(msgdict.decode())
                 if msgdict['msg'] != "":
                     print("sender:" + msgdict['sender'])
                     print("time:" + msgdict['time'])
-                    print("msg:" + self.decrypt(msgdict['msg']))
+                    print("msg:" + self.decrypt_message(msgdict['msg']))
             else:
                 while msgdict and is_json(msgdict) is not True:
                     with open(basename, 'ab') as myfile:
@@ -297,30 +462,18 @@ class client:
                     if msgdict['msg'] != "":
                         print("sender:" + msgdict['sender'])
                         print("time:" + msgdict['time'])
-                        print("msg:" + self.decrypt(msgdict['msg']))
+                        print("msg:" + self.decrypt_message(msgdict['msg']))
                 # myfile.close()
 
-            # self.__del__()
-            # exit(0)
-            # print('KI')
-            # self.clientsocket.close()
-
     def update(self):
-        # self.sendThread.join()
         self.clientsocket.send(json.dumps({'Client-shutdown':True,'client_id':self.credentials[0]}).encode())            
         self.clientsocket.shutdown(socket.SHUT_RDWR)
-        # print('ianeno')
         self.recvThread.join()
-        # print('ianeno')
-        # sys.exit(0)
 
 if __name__ == '__main__':
     Client = client('127.0.0.1')
-    # except KeyboardInterrupt:
-    #     print('Caught Keyboard Interrupt')
+    # print("end")
+# except KeyboardInterrupt:
+#     print ('Caught KeyboardInterrupt')
 
-    print("end")
-# except Exception or KeyboardInterrupt:
-#     print('Caught KeyboardInterrupt')
-
-    # >>>>>>> remotes/origin/naman
+# >>>>>>> remotes/origin/naman

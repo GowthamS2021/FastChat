@@ -37,7 +37,6 @@ class superServer:
         self.clientsocket.listen()
         self.server = []
         self.threads = []
-        
 
     def accept_server(self):
         while True:
@@ -78,17 +77,15 @@ class superServer:
                     continue
                 elif msgdict.get('isClientAdded') == False:
                     self.server[id][2] -= 1
-                    continue
-                
+                    continue                
 
                 if msgdict['msg'] == '' :
-                    globrecv = msgdict['reciever']
-                    
+                    globrecv = msgdict['reciever']                 
                     
                     
                 cursor.execute('''SELECT serverid FROM server WHERE clientid = %s ;''',(msgdict['reciever'],))
                 output = cursor.fetchall()
-                print(output[0][0])# testing
+                print(output)# testing
                 print(self.server)# testing
                 try:
                     if len(output) != 0:
