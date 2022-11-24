@@ -71,20 +71,25 @@ class server():
     def recv_supersocket(self):
 
         while True:
+            
             msgdict = self.supersocket.recv(1024)
             if is_json(msgdict):
+                
 
                 msgDict = json.loads(msgdict, strict=False)
                 # print(msgDict)# testing
-
-                try:
-                    self.clients[msgDict['reciever']][0].sendall(
-                        json.dumps(msgDict).encode())
-                except KeyError:
-                    continue
+                if msgDict['msg'] == "":
+                        idnow = msgDict['reciever']
+                else:
+                
+                        try:
+                            self.clients[msgDict['reciever']][0].sendall(
+                                json.dumps(msgDict).encode())
+                        except KeyError:
+                            continue
             else:
                 try:
-                    self.clients[msgDict['reciever']][0].send(msgdict)
+                    self.clients[idnow][0].send(msgdict)
                 except BrokenPipeError or KeyError:
                     continue
 

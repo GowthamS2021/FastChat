@@ -40,9 +40,7 @@ class superServer:
         cursor.execute('''CREATE TABLE IF NOT EXISTS auth(
             username TEXT NOT NULL PRIMARY KEY,
             password TEXT NOT NULL ,
-            salt TEXT NOT NULL,
-            publicKeyn TEXT NOT NULL,
-            publicKeye integer NOT NULL
+            salt TEXT NOT NULL
         )''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS server(
             serverId integer NOT NULL ,
@@ -62,6 +60,13 @@ class superServer:
             time TIMESTAMP,
             displayed BOOL,
             imagenames TEXT NOT NULL
+        )
+        ''')
+        cursor.execute('''CREATE TABLE IF NOT EXISTS g1roup(
+            group_name TEXT NOT NULL,
+            participant TEXT NOT NULL,
+            is_admin BOOL,
+            id integer NOT NULL
         )
         ''')
         conn.commit()
