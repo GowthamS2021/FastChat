@@ -8,8 +8,8 @@ from datetime import datetime
 
 conn = psycopg2.connect(
     database='fastchatdb',
-    user='postgres',
-    password='password',
+    user='superserver',
+    password='superserver@123',
     host = 'localhost',
     port = '5432'
 )
@@ -37,34 +37,7 @@ class superServer:
         self.clientsocket.listen()
         self.server = []
         self.threads = []
-        cursor.execute('''CREATE TABLE IF NOT EXISTS auth(
-            username TEXT NOT NULL PRIMARY KEY,
-            password TEXT NOT NULL ,
-            salt TEXT NOT NULL,
-            publicKeyn TEXT NOT NULL,
-            publicKeye integer NOT NULL
-        )''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS server(
-            serverId integer NOT NULL ,
-            clientId TEXT NOT NULL 
-        )''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS message(
-            sender TEXT NOT NULL,
-            reciever TEXT NOT NULL,
-            message TEXT ,
-            time TIMESTAMP
-        )
-        ''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS image(
-            sender TEXT NOT NULL,
-            reciever TEXT NOT NULL,
-            img BYTEA,
-            time TIMESTAMP,
-            displayed BOOL,
-            imagenames TEXT NOT NULL
-        )
-        ''')
-        conn.commit()
+        
 
     def accept_server(self):
         while True:
@@ -96,7 +69,18 @@ class superServer:
                 msgdict = json.loads(msg)
                 if msgdict.get('isClientAdded') == True:
                     self.server[id][2] += 1
+                    if msgdict.get('Privatekeys') == False:
+                        cursor.execute('''SELECT * FROM privateKeyTable WHERE username = %s''',(msgdict['name'],))
+                        output = cursor.fetchall()
+                        # print(msgdict)
+                        # print(output)
+                        connection.sendall(json.dumps({'reciever':msgdict['name'],'privateKeyn':output[0][1],'privateKeye':output[0][2],'privateKeyd':output[0][3],'privateKeyp':output[0][4],'privateKeyq':output[0][5]}).encode())
                     continue
+                elif msgdict.get('isClientAdded') == False:
+                    self.server[id][2] -= 1
+                    continue
+                
+
                 if msgdict['msg'] == '' :
                     globrecv = msgdict['reciever']
                     

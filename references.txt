@@ -29,4 +29,4 @@ https://stackoverflow.com/questions/5420789/how-to-install-psycopg2-with-pip-on-
 https://www.tutorialspoint.com/python_data_access/python_postgresql_create_database.htm
 https://www.geeksforgeeks.org/python-postgresql-select-data/
 https://www.section.io/engineering-education/rsa-encryption-and-decryption-in-python/
-
+https://stackoverflow.com/questions/3589723/can-a-socket-be-closed-from-another-thread-when-a-send-recv-on-the-same-socket#:~:text=If%20a%20thread%20is%20blocked,thread%20will%20receive%20an%20error.
