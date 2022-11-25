@@ -73,16 +73,16 @@ class superServer:
                 elif msgdict.get('isClientAdded') == False:
                     self.server[id][2] -= 1
                     continue    
-                elif msgdict.get('key') != None:
-                    cursor.execute('''SELECT serverid FROM server WHERE clientid = %s ;''',(msgdict['reciever'],))
-                    output = cursor.fetchall()
-                    print(output)# testing
-                    print(self.server)# testing
-                    try:
-                        if len(output) != 0:
-                            self.server[output[0][0]][0].send(json.dumps(msgdict).encode())
-                    except IndexError:
-                        continue     
+                # elif msgdict.get('key') != None:
+                #     cursor.execute('''SELECT serverid FROM server WHERE clientid = %s ;''',(msgdict['reciever'],))
+                #     output = cursor.fetchall()
+                #     print(output)# testing
+                #     print(self.server)# testing
+                #     try:
+                #         if len(output) != 0:
+                #             self.server[output[0][0]][0].send(json.dumps(msgdict).encode())
+                #     except IndexError:
+                #         continue     
                 elif msgdict['msg'] == '' :
                     globrecv = msgdict['reciever']                 
                     

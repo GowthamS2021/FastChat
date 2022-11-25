@@ -113,8 +113,13 @@ class server():
                 # msgDict = msgdict
                 if msgDict.get('msg') == "" :
                     idnow = msgDict['reciever']
-                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
-                    output = cursor.fetchone()
+                    while True:
+                        try:
+                            cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
+                            output = cursor.fetchone()
+                            break
+                        except:
+                            continue
                     # print(output)# testing
                     # print(self.server_id)# testing
                     if len(output) == 0 or output[0] != self.server_id :
@@ -127,19 +132,19 @@ class server():
                                 json.dumps(msgDict).encode())
                         except:
                             continue
-                elif msgDict.get('key') != None:
-                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
-                    output = cursor.fetchall()
-                    if len(output) == 0 or output[0][0] != self.server_id:
-                        # >>>>>>> remotes/origin/naman
-                        self.supersocket.sendall(json.dumps(msgDict).encode())
-                    elif output[0][0] == self.server_id:
-                        try:
-                            self.clients[msgDict['reciever']][0].sendall(
-                                json.dumps(msgDict).encode())
-                        except:
-                            print(msgDict)
-                            continue
+                # elif msgDict.get('key') != None:
+                #     cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
+                #     output = cursor.fetchall()
+                #     if len(output) == 0 or output[0][0] != self.server_id:
+                #         # >>>>>>> remotes/origin/naman
+                #         self.supersocket.sendall(json.dumps(msgDict).encode())
+                #     elif output[0][0] == self.server_id:
+                #         try:
+                #             self.clients[msgDict['reciever']][0].sendall(
+                #                 json.dumps(msgDict).encode())
+                #         except:
+                #             # print(msgDict)
+                #             continue
                 else:
                     # msgdict = json.loads(connection.recv(1024).decode())
                     # print(msgDict)# testing

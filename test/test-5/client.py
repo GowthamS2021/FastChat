@@ -84,18 +84,17 @@ class client:
                 if not x[4]:
                     myfile = open(basename, 'ab')
                     if x[5] != stry:
-                        basename = "recvimg"+str(today)+".jpg"
+                        basename = "recvimg"+str(today)+"_"+str(self.credentials[0])+".jpg"
                         myfile.close()
                         myfile = open(basename, 'ab')
                         myfile.write(x[2])
                         cursor.execute(
-                            '''UPDATE image SET displayed = TRUE  WHERE img = %s AND reciever = %s ;''', (x[2],username))
+                            '''UPDATE image SET displayed = TRUE  WHERE img = %s AND reciever = %s ''', (x[2],self.credentials[0]))
                         conn.commit()
-
                     else:
                         myfile.write(x[2])
                         cursor.execute(
-                            '''UPDATE image SET displayed = TRUE  WHERE img = %s AND reciever = %s ;''', (x[2],username))
+                            '''UPDATE image SET displayed = TRUE  WHERE img = %s AND reciever = %s ''', (x[2],self.credentials[0]))
                         conn.commit()
 
     def auth(self):
@@ -251,60 +250,84 @@ class client:
                     self.clientsocket.send(json.dumps(msgdict).encode())
                 else:
                     msg = ""
-                    # key = Fernet.generate_key()
-                    # print(key)
+
                     msgdict = {
                         'sender': self.credentials[0], 'reciever': name, 'msg': msg}
                     cursor.execute(
-                        '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP));''', (self.credentials[0], name, msg))
+                        '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP))''', (self.credentials[0], name, msg))
                     conn.commit()
                     self.clientsocket.send(json.dumps(msgdict).encode())
 
                     imagename = input('imagename:')
-                    # myfile = open(imagename, 'rb')
-                    # imagedata = myfile.read(117)
-                    cursor.execute('''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s;''',(name,))
-                    public = cursor.fetchall()[0]
-                    image_key = get_random_bytes(16)
-                    print(image_key)
-                    cipher = AES.new(image_key,AES.MODE_CBC)
-                    encrypted_image_key = self.encrypt_images(image_key,(rsa.key.PublicKey(int(public[0]),public[1])))
-                    # encrypted_image,_ = cipher.encrypt_and_digest(imagedata)
-                    # encrypted_image = self.encrypt_images(imagedata,(rsa.key.PublicKey(int(public[0]),public[1])))
-                    encrypted_iv = self.encrypt_images(cipher.iv,(rsa.key.PublicKey(int(public[0]),public[1])))
-                    print(cipher.iv)
-                    # key = Fernet.generate_key()
-                    # with open('info/key.txt', mode='wb+') as keyValue:
-                    #     keyValue.write(key)
-                    msgdict = {'key':encrypted_image_key,'iv':encrypted_iv,'reciever':name}
-                    self.clientsocket.send(json.dumps(msgdict).encode())
-                    with open(imagename, 'rb') as f:
-                        content = f.read(4096)
-                        if not content:
-                            break
-                        encrypted_image = base64.b64encode(cipher.encrypt(pad(content,AES.block_size)))
-                        # hexValue = binascii.hexlify(content)
-                        # f = Fernet(key)
-                        # encHexVal = f.encrypt(hexValue) 
-                        self.clientsocket.sendall(encrypted_image)
-                        cursor.execute(
-                        '''INSERT INTO image( sender, reciever , img,key, iv, time ,displayed , imagenames) VALUES(%s,%s,%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s);''', (self.credentials[0], name,content,encrypted_image_key,encrypted_iv, imagename))
-                        conn.commit()
-                    # with open('info/encryptedHex.txt', mode='wb+') as hexValueFile:
-                    #     hexValueFile.write(encHexVal)
-                    # self.clientsocket.sendfile(open('info/encryptedHex.txt',mode='rb'))
-                    # cursor.execute(
-                    #     '''INSERT INTO image( sender, reciever , img, key, time ,displayed , imagenames) VALUES(%s,%s,%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s);''', (self.credentials[0], name,encrypted_image, encrypted_image_key, encrypted_iv, imagename))
+                    myfile = open(imagename, 'rb')
+                    imagedata = myfile.read(2048)
+                    cursor.execute(
+                        '''INSERT INTO image( sender, reciever , img , time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], name, imagedata, imagename))
 
+                    conn.commit()
+                    while imagedata:
+                        self.clientsocket.sendall(imagedata)
+                        imagedata = myfile.read(2048)
+                        if not imagedata:
+                            break
+                        cursor.execute(
+                            '''INSERT INTO image( sender, reciever , img , time, displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], name, imagedata, imagename))
+                        conn.commit()
+                    # msg = ""
+                    # # key = Fernet.generate_key()
+                    # # print(key)
+                    # msgdict = {
+                    #     'sender': self.credentials[0], 'reciever': name, 'msg': msg}
+                    # cursor.execute(
+                    #     '''INSERT INTO message(sender,reciever,message,time) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP));''', (self.credentials[0], name, msg))
                     # conn.commit()
-                    # while imagedata:
-                    #     self.clientsocket.sendall(encrypted_image)
-                    #     imagedata = myfile.read(117)
-                    #     if not imagedata:
+                    # self.clientsocket.send(json.dumps(msgdict).encode())
+
+                    # imagename = input('imagename:')
+                    # # myfile = open(imagename, 'rb')
+                    # # imagedata = myfile.read(117)
+                    # cursor.execute('''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s;''',(name,))
+                    # public = cursor.fetchall()[0]
+                    # # image_key = get_random_bytes(16)
+                    # # print(image_key)
+                    # # cipher = AES.new(image_key,AES.MODE_CBC)
+                    # # encrypted_image_key = self.encrypt_images(image_key,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    # # # encrypted_image,_ = cipher.encrypt_and_digest(imagedata)
+                    # # # encrypted_image = self.encrypt_images(imagedata,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    # # encrypted_iv = self.encrypt_images(cipher.iv,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    # # print(cipher.iv)
+                    # # key = Fernet.generate_key()
+                    # # with open('info/key.txt', mode='wb+') as keyValue:
+                    # #     keyValue.write(key)
+                    # # msgdict = {'key':encrypted_image_key,'iv':encrypted_iv,'reciever':name}
+                    # # self.clientsocket.send(json.dumps(msgdict).encode())
+                    # with open(imagename, 'rb') as f:
+                    #     content = f.read(4096)
+                    #     if not content:
                     #         break
-                    #     # encrypted_image,_ = cipher.encrypt_and_digest(imagedata)
-                    #     # encrypted_image = base64.b64encode(cipher.encrypt(pad(imagedata,AES.block_size))).decode()
-                    #     encrypted_image = self.encrypt_images(imagedata,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    #     # encrypted_image = base64.b64encode(cipher.encrypt(pad(content,AES.block_size)))
+                    #     # hexValue = binascii.hexlify(content)
+                    #     # f = Fernet(key)
+                    #     # encHexVal = f.encrypt(hexValue) 
+                    #     self.clientsocket.sendall(content)
+                    #     cursor.execute(
+                    #     '''INSERT INTO image( sender, reciever , img, time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s);''', (self.credentials[0], name,content, imagename))
+                    #     conn.commit()
+                    # # with open('info/encryptedHex.txt', mode='wb+') as hexValueFile:
+                    # #     hexValueFile.write(encHexVal)
+                    # # self.clientsocket.sendfile(open('info/encryptedHex.txt',mode='rb'))
+                    # # cursor.execute(
+                    # #     '''INSERT INTO image( sender, reciever , img, key, time ,displayed , imagenames) VALUES(%s,%s,%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s);''', (self.credentials[0], name,encrypted_image, encrypted_image_key, encrypted_iv, imagename))
+
+                    # # conn.commit()
+                    # # while imagedata:
+                    # #     self.clientsocket.sendall(encrypted_image)
+                    # #     imagedata = myfile.read(117)
+                    # #     if not imagedata:
+                    # #         break
+                    # #     # encrypted_image,_ = cipher.encrypt_and_digest(imagedata)
+                    # #     # encrypted_image = base64.b64encode(cipher.encrypt(pad(imagedata,AES.block_size))).decode()
+                    # #     encrypted_image = self.encrypt_images(imagedata,(rsa.key.PublicKey(int(public[0]),public[1])))
                     
             elif checks == 'exit':
                 self.var = False
@@ -465,13 +488,11 @@ class client:
                                 conn.commit()
                                 self.clientsocket.sendall(
                                     json.dumps(msgdict).encode())
-                                cursor.execute('''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s''',(i[0],))
-                                public = cursor.fetchall()[0]
+
                                 myfile = open(imagename, 'rb')
                                 imagedata = myfile.read(2048)
-                                # encrypted_image = self.encrypt_images(imagedata,(rsa.key.PublicKey(int(public[0]),public[1])))
                                 cursor.execute(
-                                    '''INSERT INTO image( sender, reciever , img , time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], i[0],imagedata, imagename))
+                                    '''INSERT INTO image( sender, reciever , img , time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], i[0], imagedata, imagename))
 
                                 conn.commit()
                                 while imagedata:
@@ -479,11 +500,9 @@ class client:
                                     imagedata = myfile.read(2048)
                                     if not imagedata:
                                         break
-                                    # encrypted_image = self.encrypt_images(imagedata)
                                     cursor.execute(
-                                    '''INSERT INTO image( sender, reciever , img , time ,displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], i[0], imagedata, imagename))
+                                        '''INSERT INTO image( sender, reciever , img , time, displayed , imagenames) VALUES(%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s)''', (self.credentials[0], i[0], imagedata, imagename))
                                     conn.commit()
-
 
     def recv(self):
         while self.var:
@@ -496,21 +515,21 @@ class client:
             if is_json(msgdict):#msgdict.get('img') == None:
                 msgdict = json.loads(msgdict.decode())
                 print(msgdict)
-                if msgdict.get('key') != None and msgdict.get('key') != "":
-                    self.key = msgdict['key']
-                    self.iv = msgdict['iv']
-                    print(msgdict)
-                elif msgdict['msg'] != "":
+                # if msgdict.get('key') != None and msgdict.get('key') != "":
+                #     self.key = msgdict['key']
+                #     self.iv = msgdict['iv']
+                #     print(msgdict)
+                if msgdict['msg'] != "":
                     print("sender:" + msgdict['sender'])
                     print("time:" + msgdict['time'])
                     print("msg:" + self.decrypt_message(msgdict['msg']))
             else:
-                if self.iv != None:
-                    iv = self.decrypt_images(self.iv)
-                if self.key != None:
-                    key = self.decrypt_images(self.key)
-                print(iv)
-                print(key)
+                # if self.iv != None:
+                #     iv = self.decrypt_images(self.iv)
+                # if self.key != None:
+                #     key = self.decrypt_images(self.key)
+                # print(iv)
+                # print(key)
                 # key = base64.b64decode(self.key.encode())
                 # print(key)
                 # with open('info/key.txt', mode='rb') as keyValue:
@@ -529,16 +548,19 @@ class client:
                         #     print(output)
                         #     key = self.decrypt_images(output[0][0])
                         #     iv = self.decrypt_images(output[0][1])
-                        encrypted_imagedata = msgdict
-                        cipher = AES.new(key,AES.MODE_CBC,iv)
-                        imagedata = unpad(cipher.decrypt(base64.b64decode(encrypted_imagedata)),AES.block_size) 
+                        # encrypted_imagedata = msgdict
+                        # cipher = AES.new(key,AES.MODE_CBC,iv)
+                        # imagedata = unpad(cipher.decrypt(base64.b64decode(encrypted_imagedata)),AES.block_size) 
                         # imagedata = self.decrypt_images(encrypted_imagedata)
-                        myfile.write(imagedata)
+                        # myfile.write(i)
                         cursor.execute(
                             '''UPDATE image SET displayed = TRUE  WHERE img = %s AND reciever = %s;''', (msgdict,self.credentials[0]))
-                        conn.commit()                      
+                        conn.commit()
+                                          
 
                     msgdict = self.clientsocket.recv(1024)
+                    if is_json(msgdict) is True:
+                        break
 
                 # noofimages += 1
                 if is_json(msgdict) is True:

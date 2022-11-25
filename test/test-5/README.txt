@@ -1,1 +1,0 @@
-.jpg problem , empty string problem , clients not updated ,encryption of images , private key problem , group , granting access.
