@@ -16,11 +16,12 @@ def server():
     subprocess.run(["python3","server.py" ,str(server_port-number_of_servers+1)],shell=False)
 
 def client():
-    print('client')
-    time.sleep(2)
-    p = subprocess.run(["python3","create_users.py"],shell = False,capture_output=True)
+    print('client')    
+    out = open('input.txt','w+')
+    input_file= open('input.txt','r')
+    p = subprocess.run(["python3","create_users.py"],stdout = out)
     time1 = datetime.datetime.now()
-    subprocess.run(["python3","client.py"],shell = False,input=p.stdout)
+    subprocess.run(["python3","client.py"],stdin = input_file)
     time2 = datetime.datetime.now()
     print(time2 -time1)
     print('client')
@@ -30,9 +31,19 @@ superServerThread.start()
 
 serverThreads = [threading.Thread(target=server,args=())]
 serverThreads[0].start()
-
+# time.sleep(2)
 ClientThreads = []
 for i in range(5):
     ClientThreads.append(threading.Thread(target=client,args=()))
     ClientThreads[i].start()
+    # time.sleep(2)
     # subprocess.run(["python3 client.py < python3 create_users.py"],shell = True)
+
+superServerThread.join()
+for x in serverThreads:
+    x.join()
+for x in ClientThreads:
+    x.join()
+
+exit(0)
+

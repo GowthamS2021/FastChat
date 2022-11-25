@@ -104,7 +104,8 @@ class client:
             cmd = int(input("press 1 for Login else 0 for SignUp:"))
             if cmd == 1:
                 username = input("Username:")
-                password = getpass("Password:")
+                # password = getpass("Password:")
+                password = input("Password:")
                 cursor.execute(
                     '''SELECT password,salt FROM auth WHERE username = %s''', (username,))
                 output = cursor.fetchall()
@@ -118,8 +119,11 @@ class client:
                     return (username, password)
             elif cmd == 0:
                 username = input("Username:").strip(' ')
-                password = getpass("Password:")
-                co_password = getpass("Confirm Password:")
+                # password = getpass("Password:")
+                password = input("Password:")
+                # co_password = getpass("Confirm Password:")
+                co_password = input("Confirm Password:")
+
                 if co_password == password:
                     cursor.execute(
                         '''SELECT password,salt FROM auth WHERE username = %s ;''', (username,))
@@ -501,8 +505,10 @@ class client:
                     print("time:" + msgdict['time'])
                     print("msg:" + self.decrypt_message(msgdict['msg']))
             else:
-                iv = self.decrypt_images(self.iv)
-                key = self.decrypt_images(self.key)
+                if self.iv != None:
+                    iv = self.decrypt_images(self.iv)
+                if self.key != None:
+                    key = self.decrypt_images(self.key)
                 print(iv)
                 print(key)
                 # key = base64.b64decode(self.key.encode())
@@ -546,7 +552,7 @@ class client:
     def update(self):
         self.clientsocket.send(json.dumps({'Client-shutdown':True,'client_id':self.credentials[0]}).encode())            
         self.clientsocket.shutdown(socket.SHUT_RDWR)
-        self.recvThread.join()
+        # self.recvThread.join()
 
 if __name__ == '__main__':
     Client = client('127.0.0.1')
