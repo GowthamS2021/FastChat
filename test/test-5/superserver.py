@@ -28,7 +28,24 @@ def is_json(myjson):
 
 
 class superServer:
+    """This is the super-server class, using this , we do the load-balancing
+    in case of multiple servers
+    
+    :param supersocket: accepts connections from the server
+    :type supersocket: socket
+    :param clientsocket: accepts connections from the clients
+    :type clientsocket: socket
+    :param server: list of connections to the server
+    :type server: list
+    :param client: list of connections to the client
+    :type client: list
+    """
     def __init__(self,host):
+        """ Constructor method, initializes everything
+
+        :param host: address of the host
+        :type host: string
+        """
         self.supersocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.clientsocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.supersocket.bind((host,7999))
@@ -39,6 +56,8 @@ class superServer:
         self.threads = []
 
     def accept_server(self):
+        """Accepts connections from the servers and receives and sends messages to servers
+        """
         while True:
             connection,address = self.supersocket.accept()
             id = len(self.server)            
@@ -51,6 +70,9 @@ class superServer:
             # print(self.server)# testing
     
     def accept_client(self):
+        """Accepts connections from the clients and connects them to the server which 
+        is connected to the least number of clients(round-robin) doing the load balancing
+        """
         while True:
             connection,address = self.clientsocket.accept()
             servers = sorted(self.server,key=(lambda x: x[2]))
@@ -58,6 +80,13 @@ class superServer:
             connection.close() # doubt
 
     def handle_recv(self,connection,id):
+        """Receives and sends messages to servers
+        
+        :param connection: The connection from which it receives this message
+        :type connection: socket
+        :param id: The server id from which it received the message
+        :type id: int
+        """
         global globrecv
         while True:
             msg = connection.recv(1024)

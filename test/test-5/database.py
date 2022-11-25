@@ -1,5 +1,14 @@
+"""Database creation
+
+This file is used to create a database called fastchatdb which creates six tables
+auth,server,message,image,Groups,privateKeyTable and grant some permissions to client
+
+"""
+
+
 import psycopg2
 import sys
+
 
 conn = psycopg2.connect(
         database=sys.argv[3],
@@ -10,9 +19,13 @@ conn = psycopg2.connect(
     )
 
 cursor = conn.cursor()
-cursor.execute('''SELECT 'CREATE DATABASE fastchatdb'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'fastchatdb')''')
+cursor.execute('''SELECT FROM pg_database WHERE datname = 'fastchatdb' ''')
 conn.commit()
+output = cursor.fetchall()
+if len(output) == 0:
+        cursor.execute('''CREATE DATABASE fastchatdb ''')
+conn.commit()
+
 
 conn = psycopg2.connect(
         database='fastchatdb',
@@ -22,12 +35,26 @@ conn = psycopg2.connect(
         port='5432'
     )
 cursor = conn.cursor()
-cursor.execute('''SELECT 'CREATE ROLE superserver SUPERUSER LOGIN PASSWORD "superserver@123" '
-WHERE NOT EXISTS (SELECT * FROM pg_catalog.pg_user WHERE usename = 'superserver')  ''')
-cursor.execute('''SELECT 'CREATE ROLE server LOGIN PASSWORD "server@fastchat" ' 
-WHERE NOT EXISTS (SELECT * FROM pg_catalog.pg_user WHERE usename = 'server')  ''')
-cursor.execute('''SELECT 'CREATE ROLE client LOGIN PASSWORD "Client@fastchat" '
-WHERE NOT EXISTS (SELECT * FROM pg_catalog.pg_user WHERE usename = 'client')  ''')
+cursor.execute(''' SELECT * FROM pg_catalog.pg_user WHERE usename = 'superserver'  ''')
+output = cursor.fetchall()
+if len(output) == 0:
+        cursor.execute('''CREATE ROLE superserver SUPERUSER LOGIN PASSWORD 'superserver@123' ''')
+cursor.execute('''SELECT * FROM pg_catalog.pg_user WHERE usename = 'server' ''')
+output = cursor.fetchall()
+if len(output) == 0:
+        cursor.execute('''CREATE ROLE server LOGIN PASSWORD 'server@fastchat' ''')
+
+# cursor.execute('''SELECT 'CREATE ROLE superserver SUPERUSER LOGIN PASSWORD "superserver@123" '
+# WHERE NOT EXISTS (SELECT * FROM pg_catalog.pg_user WHERE usename = 'superserver')  ''')
+# cursor.execute('''SELECT 'CREATE ROLE server LOGIN PASSWORD "server@fastchat" ' 
+# WHERE NOT EXISTS (SELECT * FROM pg_catalog.pg_user WHERE usename = 'server')  ''')
+cursor.execute('''SELECT * FROM pg_catalog.pg_user WHERE usename = 'client' ''')
+output = cursor.fetchall()
+if len(output) == 0:
+        cursor.execute('''CREATE ROLE client LOGIN PASSWORD 'Client@fastchat' ''')
+
+# cursor.execute('''SELECT 'CREATE ROLE client LOGIN PASSWORD "Client@fastchat" '
+# WHERE NOT EXISTS (SELECT * FROM pg_catalog.pg_user WHERE usename = 'client')  ''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS auth(
             username TEXT NOT NULL PRIMARY KEY,
             password TEXT NOT NULL ,
