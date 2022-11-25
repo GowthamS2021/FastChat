@@ -55,7 +55,7 @@ class server():
         recvThread = threading.Thread(
             target=self.handle_recv, args=(connection,))
         self.threads[client_id] = recvThread        
-        cursor.execute("SELECT serverId FROM server WHERE clientId= \'" + client_id + "\'")
+        cursor.execute("SELECT serverId FROM server WHERE clientId= \'" + client_id + "\' ;")
         # output = []
         # try:
         #     output = cursor.fetchall()
@@ -70,10 +70,10 @@ class server():
         if len(output) == 0:
             print('\''+client_id+'\'')
             cursor.execute(
-                '''INSERT INTO server(serverId,clientId) VALUES(%s,%s)''', (self.server_id, client_id))
+                '''INSERT INTO server(serverId,clientId) VALUES(%s,%s) ;''', (self.server_id, client_id))
         else:
             cursor.execute(
-                '''UPDATE server SET serverId = %s  WHERE clientId = %s ''', (self.server_id, client_id))
+                '''UPDATE server SET serverId = %s  WHERE clientId = %s ;''', (self.server_id, client_id))
         conn.commit()
         # self.supersocket.sendall(json.dumps(
         #     {'isClientAdded': True}).encode()) 
@@ -87,7 +87,7 @@ class server():
 
                 msgDict = json.loads(msgdict, strict=False)
                 # print(msgDict)# testing
-                if msgDict['msg'] == "":
+                if msgDict.get('msg') == "":
                         idnow = msgDict['reciever']
                 else:
                 
@@ -107,42 +107,51 @@ class server():
     def handle_recv(self, connection):
         global idnow
         while True:
-            msgdict = connection.recv(4096)
-            if is_json(msgdict):
+            msgdict = connection.recv(1024)
+            if is_json(msgdict):#msgdict.get('img') == None:
                 msgDict = json.loads(msgdict, strict=False)
-                if msgDict.get('msg') == "":
+                # msgDict = msgdict
+                if msgDict.get('msg') == "" :
                     idnow = msgDict['reciever']
-                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ''', (msgDict['reciever'],))
-                    output = cursor.fetchall()
+                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
+                    output = cursor.fetchone()
                     # print(output)# testing
                     # print(self.server_id)# testing
-                    if len(output) == 0 or output[0] != self.server_id:
+                    if len(output) == 0 or output[0] != self.server_id :
                         self.supersocket.sendall(json.dumps(msgDict).encode())
+                    elif output[0] == -1:
+                        continue
                     elif output[0] == self.server_id:
                         try:
                             self.clients[msgDict['reciever']][0].sendall(
                                 json.dumps(msgDict).encode())
                         except:
                             continue
+                elif msgDict.get('key') != None:
+                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
+                    output = cursor.fetchall()
+                    if len(output) == 0 or output[0][0] != self.server_id:
+                        # >>>>>>> remotes/origin/naman
+                        self.supersocket.sendall(json.dumps(msgDict).encode())
+                    elif output[0][0] == self.server_id:
+                        try:
+                            self.clients[msgDict['reciever']][0].sendall(
+                                json.dumps(msgDict).encode())
+                        except:
+                            print(msgDict)
+                            continue
                 else:
                     # msgdict = json.loads(connection.recv(1024).decode())
                     # print(msgDict)# testing
                     if msgDict.get('Client-shutdown') != None and msgDict['Client-shutdown'] == True:
                         cursor.execute(
-                            '''UPDATE server SET serverId = -1  WHERE clientId = %s ''', (msgDict['client_id'],))
+                            '''UPDATE server SET serverId = -1  WHERE clientId = %s ;''', (msgDict['client_id'],))
                         conn.commit()
                         self.supersocket.sendall(json.dumps({'isClientAdded': False}).encode())
                         continue
                     print(msgDict)
-                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ''', (msgDict['reciever'],))
+                    cursor.execute('''SELECT serverId FROM server WHERE clientId = %s ;''', (msgDict['reciever'],))
                     output = cursor.fetchall()
-# <<<<<<< HEAD
-                    # print(output)# testing
-                    # print(self.server_id)# testing
-                    # if len(output) == 0 or output[0][0]!=self.server_id:
-# =======
-                    # print(output)# testing
-                    # print(self.server_id)# testing
                     if len(output) == 0 or output[0][0] != self.server_id:
                         # >>>>>>> remotes/origin/naman
                         self.supersocket.sendall(json.dumps(msgDict).encode())

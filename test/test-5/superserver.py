@@ -62,24 +62,28 @@ class superServer:
         while True:
             msg = connection.recv(1024)
             if is_json(msg):
-                # if msg == 'True':
-                #     self.server[id][2] += 1
-                #     continue
                 msgdict = json.loads(msg)
                 if msgdict.get('isClientAdded') == True:
                     self.server[id][2] += 1
                     if msgdict.get('Privatekeys') == False:
                         cursor.execute('''SELECT * FROM privateKeyTable WHERE username = %s''',(msgdict['name'],))
                         output = cursor.fetchall()
-                        # print(msgdict)
-                        # print(output)
                         connection.sendall(json.dumps({'reciever':msgdict['name'],'privateKeyn':output[0][1],'privateKeye':output[0][2],'privateKeyd':output[0][3],'privateKeyp':output[0][4],'privateKeyq':output[0][5]}).encode())
                     continue
                 elif msgdict.get('isClientAdded') == False:
                     self.server[id][2] -= 1
-                    continue                
-
-                if msgdict['msg'] == '' :
+                    continue    
+                elif msgdict.get('key') != None:
+                    cursor.execute('''SELECT serverid FROM server WHERE clientid = %s ;''',(msgdict['reciever'],))
+                    output = cursor.fetchall()
+                    print(output)# testing
+                    print(self.server)# testing
+                    try:
+                        if len(output) != 0:
+                            self.server[output[0][0]][0].send(json.dumps(msgdict).encode())
+                    except IndexError:
+                        continue     
+                elif msgdict['msg'] == '' :
                     globrecv = msgdict['reciever']                 
                     
                     
