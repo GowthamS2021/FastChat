@@ -14,13 +14,10 @@ Till now , we have implemented
 * **Postgre-SQL for storing messages and images in the database**
 * **authentication**
 * **end-to-end encryption for messages**
-* Most of Load-Balancing with few error since we haven't handled the exception and errors
+* **Most of Load-Balancing with few error since we haven't handled the exception and errors**
+* **Groups**
 
-# TODO 
 
-* Few Bug fixings
-* groups 
-* end-to-end encryption for images .
 
 # Working and implementation of our code
 
@@ -34,13 +31,24 @@ database and RSA for **end-to-end** encryption we have used **round-robin load-b
 * server.py is the file which has code for servers. It takes the port number as commandline argument.client.py
 * It connects with Load balancing server and clients. It allows the clients to communicate. 
 * Both server and clients have access to database and send messages to database first and then to their respective clients/servers .
+* We have given the user the access to create groups and add participants in it and send messages and images to all members in the group.
+
+# How to compile/run our code
+
+* We should first run the command "python3 database.py postgres password postgres" 
+* Next ,we should run "python3 superserver.py"
+* Next , to make a server we should run "python3 server.py PORT-NO" where port no is the port where you want the server to run on ,it should'nt be 7999 or 7998 as 
+superserver is running there.
+* Next , we should run "python3 client.py"
+* Then, instructions are there in terminal.
+
 
 <<<<<<< HEAD
 # Team member's contribution
 
-* Kanishk Garg : Test-1 and Test-2, basic implementation, groups
+* Kanishk Garg : Test-1 and Test-2, basic implementation, documentation.
 * Gowtham : Test-3,4 and 5, Implementation of multiserver-multiclient system by using multithreading, E2E encryption, Authenication, Storing messages in Database.
-* Naman : Test-5, Sending,Storing images, Salting of password, Encryption of images(Working).
+* Naman : Test-5, Sending,Storing images, Salting of password, groupchat.
 =======
 >>>>>>> remotes/origin/naman
 

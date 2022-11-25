@@ -17,6 +17,11 @@ cursor = conn.cursor()
 
 
 def is_json(myjson):
+    """Checks if a particular object is a valid json string
+        
+    :param myjson: parameter to check
+    :type myjson: string,byte
+    """
     try:
         json.loads(myjson)
     except ValueError as e:
@@ -25,7 +30,29 @@ def is_json(myjson):
 
 
 class server():
+    """ This is a server class , it represents the server side of our code, it has a constructor server(host,port).It has six parameters and three member functions 
+
+    :param serversocket: accepts connection from client
+    :type serversocket: socket
+    :param supersocket: connects to the super-server(load-balancing server)
+    :type supersocket: socket
+    :param server_id: server's id 
+    :type server_id: int
+    :param clients: is the dictionary representing connection of each client connected to this server 
+    :type clients: dictionary
+    :param threads: for receiving and sending messages to clients 
+    :type threads: dictionary
+    :param supersocketThread: for receiving messages from the superserver and sending them to the clients
+    :type supersocketThread: string
+    """
     def __init__(self, host, port):
+        """ Constructor method, initializes everything
+
+        :param host: address of the host
+        :type host: string
+        :param port: port on which the server is running
+        :type port: int
+        """
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.supersocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serversocket.bind((host, port))
@@ -41,6 +68,10 @@ class server():
         self.supersocketThread.start()
 
     def accept(self):
+        """ To accept connection from the clients and receive their usernames and use it to store connection with the client in clients dictionary
+
+        
+        """
         connection, address = self.serversocket.accept()
         # print('heyy')# testing
         infodict = json.loads(connection.recv(1024).decode())  # send the username
@@ -80,6 +111,9 @@ class server():
         recvThread.start()
 
     def recv_supersocket(self):
+        """To receive messages from the supersocket and send them to the clients to which they are directed
+        
+        """
         while True:            
             msgdict = self.supersocket.recv(1024)
             if is_json(msgdict):
@@ -105,6 +139,13 @@ class server():
                         continue
 
     def handle_recv(self, connection):
+        """receives messages from clients and either sends them back to the receiver client 
+        if it is present in the server or sends it to superserver, if it is not present in the 
+        server
+        
+        :param connection: connection object with the client
+        :type connection: socket
+        """
         global idnow
         while True:
             msgdict = connection.recv(1024)
