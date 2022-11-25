@@ -16,6 +16,11 @@ from datetime import datetime
 
 
 def is_json(myjson):
+    """Checks if a particular object is a valid json string
+        
+    :param myjson: parameter to check
+    :type myjson: string,byte
+    """
     try:
         json.loads(myjson)
     except ValueError as e:
@@ -35,7 +40,31 @@ cursor = conn.cursor()
 
 
 class client:
+    """ | This is a client class , it represents the client side of our code, it has a constructor Client(host).It has eight parameters and twelve member functions 
+
+    :param credentials: login details of the client
+    :type credentials: tuple
+    :param privateKeysFound: to keep track of privateKeys
+    :type privateKeysFound: bool
+    :param var: Checks whether the client is present or not
+    :type var: bool
+    :param clientsocket: connects to the server 
+    :type clientsocket: socket
+    :param clientSuperSocket: connects to the SuperServer 
+    :type clientSuperSocket: socket
+    :param address: address of the server to which the client is connected to
+    :type address: string
+    :param sendThread: Thread for sending messages
+    :type sendThread: thread
+    :param recvThread: Thread for receiving messages
+    :type recvThread: thread
+    """
     def __init__(self, host):
+        """ Constructor method, initializes everything
+
+        :param host: address of the host
+        :type host: string
+        """
         self.credentials = self.auth()
         print(self.credentials[0])
         self.privateKeysFound = os.path.isfile(
@@ -67,6 +96,11 @@ class client:
             print('Yo handled man!!')
 
     def download_unsavedimages(self, username):
+        """ Downloads the images which client received while he was offline
+
+        :param username: username of the client
+        :type username: string
+        """
         cursor.execute(
             '''SELECT * FROM image WHERE reciever = %s ORDER BY TIME ASC''', (username,))
         output = cursor.fetchall()
@@ -93,6 +127,11 @@ class client:
                         conn.commit()
 
     def auth(self):
+        """ It is used for authentication of client when we enter its login/SignUp
+
+        :return: returns username and password of the client while signing up
+        :rtype: tuple
+        """
         found = False
         while not found:
             cmd = int(input("press 1 for Login else 0 for SignUp:"))
@@ -138,6 +177,11 @@ class client:
                 print('Enter a valid command')
 
     def print_all_msgs(self, username):
+        """ Print all the messages which client received while he was offline
+
+        :param username: username of the client
+        :type username: string
+        """
         cursor.execute(
             '''SELECT * FROM message WHERE reciever = %s''', (username,))
         output = cursor.fetchall()
@@ -150,17 +194,30 @@ class client:
                     print("msg:" + decrypted)
 
     def generate_privatekeyfile(self, dict):
+        """generated a .pem file containing private keys
+        
+        :param dict: dictionary containing private keys
+        :type dict: dictionary
+        """
         privateKey = rsa.key.PrivateKey(int(dict['privateKeyn']), int(dict['privateKeye']), int(
             dict['privateKeyd']), int(dict['privateKeyp']), int(dict['privateKeyq']))
         with open('keys/privateKey_'+str(self.credentials[0])+'.pem', 'w+') as p:
             p.write(privateKey.save_pkcs1('PEM').decode())
 
     def encrypt_password(self, password):
+        """ Encryption of password
+
+        :param password: password to be encrypted
+        :type password: string
+        :return: hashed value of password
+        :rtype: tuple
+        """
         random_string = ''.join(random.choices(
             string.ascii_uppercase + string.digits, k=5))
         return (hashlib.sha256((password+random_string).encode()).hexdigest(), random_string)
 
     def isSame(self, password, stored, salt):
+
         return (hashlib.sha256((password+salt).encode()).hexdigest() == stored)
 
     def generateKeys(self, username):
@@ -188,6 +245,9 @@ class client:
             return False
 
     def send(self):
+        """ Used for sending messages from one client to other client or client
+        to its group
+        """
 
         # try:
         while self.var:
@@ -433,6 +493,9 @@ class client:
 
 
     def recv(self):
+        """For receiving the messages from other clients either in the form of DM's
+        or groupchats
+        """
 
         while self.var:
             try:
@@ -466,6 +529,9 @@ class client:
                 # myfile.close()
 
     def update(self):
+        """When client wants to leave this function is called, its job is to 
+        disconnect the client from its presently connected server
+        """
         self.clientsocket.send(json.dumps({'Client-shutdown':True,'client_id':self.credentials[0]}).encode())            
         self.clientsocket.shutdown(socket.SHUT_RDWR)
         self.recvThread.join()
