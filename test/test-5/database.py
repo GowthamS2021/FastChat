@@ -51,6 +51,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS image(
             reciever TEXT NOT NULL,
             img BYTEA NOT NULL,
             key TEXT NOT NULL,
+            iv TEXT NOT NULL,
             time TIMESTAMP,
             displayed BOOL,
             imagenames TEXT NOT NULL

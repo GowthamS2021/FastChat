@@ -10,12 +10,10 @@ import sys
 import os
 import base64
 import rsa
-# from Crypto.Cipher import AES
-# from Crypto.Util.Padding import pad
-# from Crypto.Util.Padding import unpad
-# from Crypto.Random import get_random_bytes
-import binascii
-from cryptography.fernet import Fernet
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from Crypto.Util.Padding import unpad
+from Crypto.Random import get_random_bytes
 from datetime import datetime
 
 # try:
@@ -49,6 +47,7 @@ class client:
         print(self.privateKeysFound)
         self.var = True
         self.key = None
+        self.iv = None
         self.print_all_msgs(self.credentials[0])
         self.download_unsavedimages(self.credentials[0])
         self.clientsocket = socket.socket(
@@ -184,7 +183,7 @@ class client:
         return base64.b64encode(rsa.encrypt(message.encode(), key)).decode()
     
     def encrypt_images(self,imagedata,key):
-        return base64.b64encode(rsa.encrypt(imagedata,key))
+        return base64.b64encode(rsa.encrypt(imagedata,key)).decode()
 
     def decrypt_message(self, ciphertext):
         with open('keys/privateKey_'+self.credentials[0]+'.pem', 'rb') as p:
@@ -198,7 +197,7 @@ class client:
         with open('keys/privateKey_'+self.credentials[0]+'.pem', 'rb') as p:
             key = rsa.PrivateKey.load_pkcs1(p.read())
         # try:
-        return rsa.decrypt(base64.b64decode(imagedata), key)
+        return rsa.decrypt(base64.b64decode(imagedata.encode()), key)
         # except:
         #     return False
 
@@ -262,28 +261,30 @@ class client:
                     # imagedata = myfile.read(117)
                     cursor.execute('''SELECT publicKeyn,publicKeye FROM auth WHERE username = %s;''',(name,))
                     public = cursor.fetchall()[0]
-                    # image_key = get_random_bytes(16)
-                    # cipher = AES.new(image_key,AES.MODE_CBC)
-                    # encrypted_image_key = self.encrypt_images(image_key,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    image_key = get_random_bytes(16)
+                    print(image_key)
+                    cipher = AES.new(image_key,AES.MODE_CBC)
+                    encrypted_image_key = self.encrypt_images(image_key,(rsa.key.PublicKey(int(public[0]),public[1])))
                     # encrypted_image,_ = cipher.encrypt_and_digest(imagedata)
-                    # encrypted_image = base64.b64encode(cipher.encrypt(pad(imagedata,AES.block_size))).decode()
                     # encrypted_image = self.encrypt_images(imagedata,(rsa.key.PublicKey(int(public[0]),public[1])))
-                    # encrypted_iv = self.encrypt_images(cipher.iv,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    encrypted_iv = self.encrypt_images(cipher.iv,(rsa.key.PublicKey(int(public[0]),public[1])))
+                    print(cipher.iv)
                     # key = Fernet.generate_key()
                     # with open('info/key.txt', mode='wb+') as keyValue:
                     #     keyValue.write(key)
-                    # msgdict = {'key':base64.b64encode(key).decode(),'reciever':name}
+                    msgdict = {'key':encrypted_image_key,'iv':encrypted_iv,'reciever':name}
                     self.clientsocket.send(json.dumps(msgdict).encode())
                     with open(imagename, 'rb') as f:
                         content = f.read(4096)
                         if not content:
                             break
+                        encrypted_image = base64.b64encode(cipher.encrypt(pad(content,AES.block_size)))
                         # hexValue = binascii.hexlify(content)
                         # f = Fernet(key)
                         # encHexVal = f.encrypt(hexValue) 
-                        self.clientsocket.sendall(content)
+                        self.clientsocket.sendall(encrypted_image)
                         cursor.execute(
-                        '''INSERT INTO image( sender, reciever , img, time ,displayed , imagenames) VALUES(%s,%s,%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s);''', (self.credentials[0], name,content, imagename))
+                        '''INSERT INTO image( sender, reciever , img,key, iv, time ,displayed , imagenames) VALUES(%s,%s,%s,%s,%s,(SELECT CURRENT_TIMESTAMP),FALSE,%s);''', (self.credentials[0], name,content,encrypted_image_key,encrypted_iv, imagename))
                         conn.commit()
                     # with open('info/encryptedHex.txt', mode='wb+') as hexValueFile:
                     #     hexValueFile.write(encHexVal)
@@ -493,13 +494,17 @@ class client:
                 print(msgdict)
                 if msgdict.get('key') != None and msgdict.get('key') != "":
                     self.key = msgdict['key']
+                    self.iv = msgdict['iv']
+                    print(msgdict)
                 elif msgdict['msg'] != "":
                     print("sender:" + msgdict['sender'])
                     print("time:" + msgdict['time'])
                     print("msg:" + self.decrypt_message(msgdict['msg']))
             else:
-                # iv = self.decrypt_images(msgdict.get('iv'))
-                # key = self.decrypt_images(msgdict.get('key'))
+                iv = self.decrypt_images(self.iv)
+                key = self.decrypt_images(self.key)
+                print(iv)
+                print(key)
                 # key = base64.b64decode(self.key.encode())
                 # print(key)
                 # with open('info/key.txt', mode='rb') as keyValue:
@@ -518,11 +523,11 @@ class client:
                         #     print(output)
                         #     key = self.decrypt_images(output[0][0])
                         #     iv = self.decrypt_images(output[0][1])
-                        # encrypted_imagedata = msgdict
-                        # # cipher = AES.new(key,AES.MODE_CBC,iv)
-                        # # imagedata = unpad(cipher.decrypt(encrypted_imagedata),AES.block_size) 
+                        encrypted_imagedata = msgdict
+                        cipher = AES.new(key,AES.MODE_CBC,iv)
+                        imagedata = unpad(cipher.decrypt(base64.b64decode(encrypted_imagedata)),AES.block_size) 
                         # imagedata = self.decrypt_images(encrypted_imagedata)
-                        # myfile.write(imagedata)
+                        myfile.write(imagedata)
                         cursor.execute(
                             '''UPDATE image SET displayed = TRUE  WHERE img = %s AND reciever = %s;''', (msgdict,self.credentials[0]))
                         conn.commit()                      
