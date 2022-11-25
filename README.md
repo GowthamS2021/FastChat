@@ -14,8 +14,8 @@ Till now , we have implemented
 * **Postgre-SQL for storing messages and images in the database**
 * **authentication**
 * **end-to-end encryption for messages**
-* **Most of Load-Balancing with few error since we haven't handled the exception and errors
-* **Groups
+* **Most of Load-Balancing with few error since we haven't handled the exception and errors**
+* **Groups**
 
 
 
