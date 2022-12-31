@@ -42,15 +42,11 @@ superserver is running there.
 * Next , we should run "python3 client.py"
 * Then, instructions are there in terminal.
 
-
-<<<<<<< HEAD
 # Team member's contribution
 
 * Kanishk Garg : Test-1 and Test-2, basic implementation, documentation.
 * Gowtham : Test-3,4 and 5, Implementation of multiserver-multiclient system by using multithreading, E2E encryption, Authenication, Storing messages in Database.
 * Naman : Test-5, Sending,Storing images, Salting of password, groupchat.
-=======
->>>>>>> remotes/origin/naman
 
 # Links used
 
